@@ -6,12 +6,13 @@ L'interfaccia è contenuta in un solo file, [timetracker.html](/home/pigreco/git
 
 ## Funzionalità
 
-- Dashboard con riepilogo mensile delle ore
-- Inserimento di una o più sessioni di lavoro per giornata
+- Dashboard con riepilogo mensile delle ore, grafici per progetto e per giorno
+- Inserimento di una o più sessioni di lavoro per giornata (ora inizio precompilata con l'ora corrente)
+- Modifica di inserimenti esistenti: progetto, data, sessioni e note
 - Storico con filtri per mese, team e progetto
-- Report mensile per progetto
-- Gestione anagrafica progetti
-- Salvataggio automatico su CSV
+- Report mensile per progetto con riepilogo copiabile in Excel
+- Gestione anagrafica progetti con nome, team e colore (rinomina e cancellazione)
+- Salvataggio automatico su CSV ad ogni modifica
 
 ## Requisiti
 
