@@ -176,10 +176,11 @@ hr{border:none;border-top:1px solid var(--border);margin:16px 0}
       <div class="ph"><div><h2>Storico</h2><p>Tutti gli inserimenti</p></div></div>
       <div class="pc">
         <div class="card" style="margin-bottom:14px"><div class="filt">
-          <div class="fg" style="gap:4px"><label>Mese</label><select id="stm" style="min-width:150px"></select></div>
+          <div class="fg" style="gap:4px"><label>Mese</label><select id="stm" style="min-width:150px" onchange="rStorDays()"></select></div>
+          <div class="fg" style="gap:4px"><label>Giorno</label><select id="std" style="min-width:110px"><option value="">Tutti</option></select></div>
           <div class="fg" style="gap:4px"><label>Team</label><select id="stt" style="min-width:110px"><option value="">Tutti</option><option value="G&S">G&amp;S</option><option value="IRIDE">IRIDE</option></select></div>
           <div class="fg" style="gap:4px"><label>Progetto</label><select id="stp" style="min-width:170px"><option value="">Tutti</option></select></div>
-          <button class="btn bs bsm" onclick="renderStor()">Filtra</button>
+          <button class="btn bs bsm" onclick="rStor()">Filtra</button>
           <button class="btn bg bsm" onclick="resetStor()">Reset</button>
         </div></div>
         <div class="card"><div class="tw" id="sb"></div></div>
@@ -298,18 +299,19 @@ function editE(id){
   document.getElementById('ip').value=e.pid;
   document.getElementById('id').value=e.date;
   document.getElementById('in').value=e.note||'';
-  rows=e.sessions.map(s=>({id:s.id,s:s.s||'',e:s.e||'',h:String(s.h||''),n:s.n||''}));
+  rows=e.sessions.map(s=>{let h=String(s.h||'');if(s.s&&s.e){const[sh,sm]=s.s.split(':').map(Number),[eh,em]=s.e.split(':').map(Number);const d=(eh*60+em)-(sh*60+sm);if(d>0)h=(d/60).toFixed(2);}return{id:s.id,s:s.s||'',e:s.e||'',h,n:s.n||''};});
   rR();
   document.getElementById('ins-title').textContent='Modifica Ore';
   document.getElementById('ins-sub').textContent='Modifica le ore registrate';
 }
 function addRow(){rows.push({id:uid(),s:tot(),e:'',h:'',n:''});rR()}
 function remRow(id){if(rows.length<=1){toast('Almeno una sessione',true);return}rows=rows.filter(r=>r.id!==id);rR()}
+function calcH(s,e){if(!s||!e)return null;const[sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);const d=(eh*60+em)-(sh*60+sm);return d>0?(d/60).toFixed(2):null}
+function onTC(id,f,v){if(!v)return;const r=rows.find(x=>x.id===id);if(!r)return;r[f]=v;const h=calcH(r.s,r.e);if(h!==null){r.h=h;const el=document.getElementById('h-'+id);if(el)el.value=h;}ct();}
 function rR(){
-  document.getElementById('rows').innerHTML=rows.map(r=>`<div class="rrow"><div class="fg" style="gap:4px"><label>Inizio</label><input type="time" value="${r.s}" onchange="ur('${r.id}','s',this.value)"></div><div class="fg" style="gap:4px"><label>Fine</label><input type="time" value="${r.e}" onchange="ur('${r.id}','e',this.value)"></div><div class="fg" style="gap:4px"><label>Ore</label><input type="number" min="0" max="24" step="0.25" value="${r.h}" placeholder="0" onchange="ur('${r.id}','h',this.value)"></div><div class="fg" style="gap:4px"><label>Descrizione</label><input type="text" value="${r.n}" placeholder="Attivita..." onchange="ur('${r.id}','n',this.value)"></div><div style="align-self:flex-end"><button class="btn bd bic bsm" onclick="remRow('${r.id}')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button></div></div>`).join('');
+  document.getElementById('rows').innerHTML=rows.map(r=>`<div class="rrow"><div class="fg" style="gap:4px"><label>Inizio</label><input type="time" value="${r.s}" onchange="onTC('${r.id}','s',this.value)" oninput="onTC('${r.id}','s',this.value)"></div><div class="fg" style="gap:4px"><label>Fine</label><input type="time" value="${r.e}" onchange="onTC('${r.id}','e',this.value)" oninput="onTC('${r.id}','e',this.value)"></div><div class="fg" style="gap:4px"><label>Ore</label><input type="number" id="h-${r.id}" min="0" max="24" step="0.25" value="${r.h}" placeholder="0" onchange="(function(v){const r=rows.find(x=>x.id==='${r.id}');if(r){r.h=v;ct();}})(this.value)"></div><div class="fg" style="gap:4px"><label>Descrizione</label><input type="text" value="${r.n}" placeholder="Attivita..." onchange="(function(v){const r=rows.find(x=>x.id==='${r.id}');if(r)r.n=v;})(this.value)"></div><div style="align-self:flex-end"><button class="btn bd bic bsm" onclick="remRow('${r.id}')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button></div></div>`).join('');
   ct();
 }
-function ur(id,f,v){const r=rows.find(r=>r.id===id);if(!r)return;r[f]=v;if((f==='s'||f==='e')&&r.s&&r.e){const[sh,sm]=r.s.split(':').map(Number),[eh,em]=r.e.split(':').map(Number);const d=(eh*60+em)-(sh*60+sm);if(d>0){r.h=(d/60).toFixed(2);rR();return}}ct()}
 function ct(){const t=rows.reduce((s,r)=>s+(parseFloat(r.h)||0),0);document.getElementById('it').textContent=hl(t)}
 function resetForm(){initF()}
 async function saveEntry(){
@@ -343,15 +345,26 @@ function rDash(){
   if(!rec.length){dl.innerHTML='<div class="empty">Nessun inserimento in questo mese.</div>';return}
   dl.innerHTML=`<table><thead><tr><th>Data</th><th>Progetto</th><th>Team</th><th>Sessioni</th><th>Ore</th><th>Note</th></tr></thead><tbody>${rec.map(e=>{const p=gp(e.pid)||{nome:'—',colore:'gray',team:''};return`<tr><td class="tm">${fd(e.date)}</td><td class="tpj"><span class="pdot"><span class="dot" style="background:${gc(p.colore)}"></span>${p.nome}</span></td><td>${tb(p.team)}</td><td><span class="pill pb">${e.sessions.length}</span></td><td class="th">${hl(e.total)}</td><td style="color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.note||'—'}</td></tr>`}).join('')}</tbody></table>`;
 }
+function rStorDays(){
+  const cm=document.getElementById('stm').value||cym();
+  const days=[...new Set(E.filter(e=>ym(e.date)===cm).map(e=>e.date))].sort();
+  const sd=document.getElementById('std');
+  const prev=sd.value;
+  sd.innerHTML='<option value="">Tutti</option>'+days.map(d=>`<option value="${d}">${fd(d)}</option>`).join('');
+  sd.value=days.includes(prev)?prev:'';
+}
 function rStor(){
   const yms=ayms(),sm=document.getElementById('stm');
   if(!sm.children.length)sm.innerHTML=yms.map(m=>`<option value="${m}">${ml(m)}</option>`).join('');
-  const cm=sm.value||cym(),tv=document.getElementById('stt').value,sp=document.getElementById('stp').value;
+  const cm=sm.value||cym();
+  rStorDays();
+  const tv=document.getElementById('stt').value,sp=document.getElementById('stp').value,sd=document.getElementById('std').value;
   const fp=tv?P.filter(p=>p.team===tv):P;
   document.getElementById('stp').innerHTML='<option value="">Tutti</option>'+fp.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
   document.getElementById('stp').value=fp.find(p=>p.id===sp)?sp:'';
   const pid=document.getElementById('stp').value;
   let list=E.filter(e=>ym(e.date)===cm);
+  if(sd)list=list.filter(e=>e.date===sd);
   if(tv)list=list.filter(e=>(gp(e.pid)||{}).team===tv);
   if(pid)list=list.filter(e=>e.pid===pid);
   list.sort((a,b)=>b.date.localeCompare(a.date));
@@ -359,7 +372,7 @@ function rStor(){
   if(!list.length){c.innerHTML='<div class="empty">Nessun inserimento trovato.</div>';return}
   c.innerHTML=`<table><thead><tr><th>Data</th><th>Progetto</th><th>Team</th><th>Sessioni</th><th>Ore</th><th>Note</th><th></th></tr></thead><tbody>${list.map(e=>{const p=gp(e.pid)||{nome:'—',colore:'gray',team:''};const sess=e.sessions.map(s=>`<div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${s.s&&s.e?s.s+'→'+s.e+' ':''}${s.h.toFixed(2)}h${s.n?' — '+s.n:''}</div>`).join('');return`<tr><td class="tm">${fd(e.date)}</td><td class="tpj"><span class="pdot"><span class="dot" style="background:${gc(p.colore)}"></span>${p.nome}</span></td><td>${tb(p.team)}</td><td>${sess}</td><td class="th">${hl(e.total)}</td><td style="color:var(--text3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.note||'—'}</td><td style="white-space:nowrap"><button class="btn bg bic bsm" onclick="editE('${e.id}')" title="Modifica" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg></button><button class="btn bd bic bsm" onclick="delE('${e.id}')"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button></td></tr>`}).join('')}</tbody></table>`;
 }
-function resetStor(){document.getElementById('stm').value=cym();document.getElementById('stt').value='';document.getElementById('stp').innerHTML='<option value="">Tutti</option>'+P.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');document.getElementById('stp').value='';rStor()}
+function resetStor(){document.getElementById('stm').value=cym();document.getElementById('std').value='';document.getElementById('stt').value='';document.getElementById('stp').innerHTML='<option value="">Tutti</option>'+P.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');document.getElementById('stp').value='';rStor()}
 async function delE(id){if(!confirm('Eliminare questo inserimento?'))return;E=E.filter(e=>e.id!==id);await svo();uSB();rStor();toast('Inserimento eliminato')}
 function rRep(){
   const yms=ayms(),sel=document.getElementById('rm');
