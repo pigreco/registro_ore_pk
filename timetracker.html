@@ -529,7 +529,7 @@ async function saveEntry(){
 }
 
 // ── dashboard ──────────────────────────────────────────────────────────────────
-let cP=null,cD=null,_dashYM=null,_dirtyDash=true;
+let cP=null,cD=null,_cAnno=null,_dashYM=null,_dirtyDash=true;
 function rDash(){
   const yms=ayms(),sel=document.getElementById('dm');
   sel.innerHTML=yms.map(m=>`<option value="${m}">${ml(m)}</option>`).join('');
@@ -658,9 +658,12 @@ function cSum(){const rows=document.querySelectorAll('#st tbody tr');const L=['T
 function rAnnoInit(){
   const ay=document.getElementById('ay');
   if(!ay.children.length){
+    const currentYear=new Date().getFullYear();
     const years=new Set(E.map(e=>e.date.slice(0,4)));
-    years.add(String(new Date().getFullYear()));
+    years.add(String(currentYear));
     ay.innerHTML=[...years].sort().reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
+    // Imposta l'anno corrente come selezionato di default
+    ay.value=String(currentYear);
   }
   rAnno()
 }
@@ -729,6 +732,45 @@ function rAnno(){
     h+=`<div class="hmap-day" style="background:${hCol(v)}"></div><span>${lbl}</span>`;
   });
   h+='</div></div>';
+
+  // grafico polare principali progetti
+  const yearEntries=E.filter(e=>e.date.slice(0,4)===String(year));
+  const projectHours={};
+  yearEntries.forEach(e=>{
+    projectHours[e.pid]=(projectHours[e.pid]||0)+e.total;
+  });
+  
+  // ordina progetti per ore e prendi i primi 5
+  const topProjects=Object.entries(projectHours)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,5);
+  
+  if(topProjects.length>0){
+    const totalHours=Object.values(projectHours).reduce((sum,h)=>sum+h,0);
+    h+='<div class="card" style="margin-bottom:14px">';
+    h+='<div class="fb" style="margin-bottom:12px">';
+    h+='<div class="sec" style="margin:0">Principali progetti '+year+'</div>';
+    h+='<select id="monthFilter-'+year+'" style="width:auto" onchange="updateProjectChart('+year+')">';
+    h+='<option value="">Tutti i mesi</option>';
+    for(let mi=0;mi<12;mi++){
+      const monthValue=(mi+1).toString().padStart(2,'0');
+      const hasData=yearEntries.some(e=>e.date.slice(5,7)===monthValue);
+      if(hasData){
+        h+=`<option value="${monthValue}">${MN[mi]}</option>`;
+      }
+    }
+    h+='</select>';
+    h+='</div>';
+    h+='<div style="height:300px;position:relative"><canvas id="polarChart-'+year+'"></canvas></div>';
+    h+='</div>';
+  } else {
+    // Mostra messaggio se non ci sono progetti per questo anno
+    h+='<div class="card" style="margin-bottom:14px">';
+    h+='<div class="fb" style="margin-bottom:12px"><div class="sec" style="margin:0">Principali progetti '+year+'</div></div>';
+    h+='<div class="empty">Nessun progetto registrato per l\'anno '+year+'.</div>';
+    h+='</div>';
+  }
+
   // tabella mensile
   h+='<div class="card"><div class="sec">Riepilogo mensile '+year+'</div><div class="tw"><table>';
   h+='<thead><tr><th>Mese</th><th>Ore totali</th><th>Giorni lavorati</th><th>Media/giorno</th><th>Gg lavorativi</th><th>% su 8h/gg</th></tr></thead><tbody>';
@@ -751,6 +793,138 @@ function rAnno(){
   h+=`<tr style="border-top:1.5px solid var(--border2)"><td style="color:var(--text);font-weight:600">Totale ${year}</td><td class="th" style="font-weight:600">${hl(yTot)}</td><td style="font-family:'DM Mono',monospace;color:var(--text2);font-weight:600">${yDays||'—'}</td><td style="font-family:'DM Mono',monospace;color:var(--text2);font-weight:600">${yAvg?yAvg.toFixed(1):'—'}</td><td style="font-family:'DM Mono',monospace;color:var(--text3)">${yWD}</td><td style="font-family:'DM Mono',monospace;color:var(--amber);font-weight:600">${yPct}%</td></tr>`;
   h+='</tbody></table></div></div>';
   document.getElementById('anno-content').innerHTML=h;
+
+  // crea il grafico polare per i principali progetti
+  if(topProjects.length>0){
+    // salva i dati per l'uso nel setTimeout
+    const chartData={
+      topProjects:topProjects,
+      totalHours:totalHours,
+      year:year
+    };
+    
+    setTimeout(()=>createProjectChart(chartData),100);
+  }
+}
+
+// funzione per creare/aggiornare il grafico dei progetti
+function createProjectChart(chartData){
+  try{
+    if(_cAnno)_cAnno.destroy();
+    const ctx=document.getElementById('polarChart-'+chartData.year);
+    if(!ctx)return;
+    
+    const labels=chartData.topProjects.map(([pid])=>(gp(pid)||{nome:'Progetto sconosciuto'}).nome);
+    const data=chartData.topProjects.map(([,hours])=>hours);
+    const colors=chartData.topProjects.map(([pid])=>gc((gp(pid)||{colore:'green'}).colore));
+    const percentages=chartData.topProjects.map(([,hours])=>((hours/chartData.totalHours)*100).toFixed(1));
+    
+    // Usa polarArea per il grafico polare
+    _cAnno=new Chart(ctx.getContext('2d'),{
+      type:'polarArea',
+      data:{
+        labels:labels.map((label,i)=>`${label} (${percentages[i]}%)`),
+        datasets:[{
+          data:data,
+          backgroundColor:colors.map(c=>c+'66'), // trasparenza per polarArea
+          borderColor:colors,
+          borderWidth:2
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{
+            position:'right',
+            labels:{
+              color:'#9ba3be',
+              font:{size:12},
+              padding:15,
+              usePointStyle:true,
+              pointStyle:'circle'
+            }
+          },
+          tooltip:{
+            callbacks:{
+              label:function(context){
+                const label=labels[context.dataIndex];
+                const hours=data[context.dataIndex];
+                const percentage=percentages[context.dataIndex];
+                return `${label}: ${hl(hours)} (${percentage}%)`;
+              }
+            }
+          }
+        },
+        scales:{
+          r:{
+            beginAtZero:true,
+            grid:{
+              color:'rgba(255,255,255,.08)'
+            },
+            angleLines:{
+              color:'rgba(255,255,255,.08)'
+            },
+            ticks:{
+              color:'#6b7499',
+              font:{size:10},
+              backdropColor:'transparent'
+            }
+          }
+        }
+      }
+    });
+  }catch(error){
+    console.error('Errore creazione grafico:', error);
+  }
+}
+
+// funzione per aggiornare il grafico quando si cambia il mese
+function updateProjectChart(year){
+  const monthFilter=document.getElementById('monthFilter-'+year).value;
+  
+  // filtra gli inserimenti per anno e mese (se selezionato)
+  let yearEntries=E.filter(e=>e.date.slice(0,4)===String(year));
+  if(monthFilter){
+    yearEntries=yearEntries.filter(e=>e.date.slice(5,7)===monthFilter);
+  }
+  
+  // calcola ore per progetto
+  const projectHours={};
+  yearEntries.forEach(e=>{
+    projectHours[e.pid]=(projectHours[e.pid]||0)+e.total;
+  });
+  
+  // ordina progetti per ore e prendi i primi 5
+  const topProjects=Object.entries(projectHours)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,5);
+  
+  if(topProjects.length>0){
+    const totalHours=Object.values(projectHours).reduce((sum,h)=>sum+h,0);
+    
+    // aggiorna il titolo
+    const titleText=monthFilter 
+      ? `Principali progetti ${MN[parseInt(monthFilter)-1]} ${year}`
+      : `Principali progetti ${year}`;
+    
+    const titleEl=document.querySelector(`#polarChart-${year}`).closest('.card').querySelector('.sec');
+    if(titleEl) titleEl.textContent=titleText;
+    
+    // ricrea il grafico con i nuovi dati
+    createProjectChart({
+      topProjects:topProjects,
+      totalHours:totalHours,
+      year:year
+    });
+  }else{
+    // nessun dato per questo filtro
+    if(_cAnno)_cAnno.destroy();
+    const canvas=document.getElementById('polarChart-'+year);
+    if(canvas){
+      canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+    }
+  }
 }
 
 // ── progetti ──────────────────────────────────────────────────────────────────
