@@ -122,9 +122,40 @@ hr{border:none;border-top:1px solid var(--border);margin:16px 0}
 .g8{display:flex;gap:8px}
 .empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--coral);margin-left:5px;animation:pu 1.2s ease infinite;vertical-align:middle}
+.wk-on{border-color:var(--blue)!important;background:var(--blue-dim)!important;color:var(--blue)!important}
+.cmod-body{color:var(--text2);font-size:13px;line-height:1.65;margin-bottom:0}
+/* ── open session banner ───────────────────────────────────────── */
+.ob-bar{display:none;position:fixed;top:0;left:224px;right:0;height:42px;background:#1b1508;border-bottom:1.5px solid var(--amber);z-index:20;align-items:center;padding:0 20px;gap:12px}
+.ob-bar.on{display:flex}
+.main.has-ob{padding-top:42px}
+.main.has-ob .ph{top:42px}
+/* ── obiettivo mensile ─────────────────────────────────────────── */
+.goal-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin:7px 0 4px}
+.goal-barf{height:100%;border-radius:3px;transition:width .5s}
+/* ── heatmap annuale ───────────────────────────────────────────── */
+.hmap-wrap{display:flex;gap:6px}
+.hmap-labels{display:flex;flex-direction:column;gap:2px;padding-top:16px;flex-shrink:0}
+.hmap-dl{font-size:10px;color:var(--text3);height:13px;line-height:13px;text-align:right;padding-right:5px;white-space:nowrap}
+.hmap{display:flex;gap:2px}
+.hmap-col{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.hmap-ml{font-size:10px;color:var(--text3);height:16px;line-height:16px;white-space:nowrap;overflow:hidden}
+.hmap-day{width:13px;height:13px;border-radius:2px;flex-shrink:0}
+.hmap-day.clickable{cursor:pointer}.hmap-day.clickable:hover{outline:1.5px solid rgba(255,255,255,.4);outline-offset:1px}
+.hmap-legend{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:11px;color:var(--text3);flex-wrap:wrap}
+.hmap-legend .hmap-day{cursor:default}
 </style>
 </head>
 <body>
+
+<!-- Banner: sessione aperta -->
+<div class="ob-bar" id="ob">
+  <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="var(--amber)" stroke-width="2"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l2.5 2"/></svg>
+  <span id="ob-txt" style="flex:1;font-size:13px;color:var(--text)"></span>
+  <button class="btn bsm" style="background:var(--amber);color:#1a0e00;font-weight:600;border:none" onclick="closeOpenSess()">Chiudi ora</button>
+  <button class="btn bg bsm" onclick="goToOpenSess()">Modifica</button>
+</div>
+
 <div id="setup">
   <div class="sc">
     <h2>Time<span>Log</span></h2>
@@ -146,6 +177,7 @@ hr{border:none;border-top:1px solid var(--border);margin:16px 0}
       <div class="ni" data-p="ins"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 2"/></svg><span>Inserisci Ore</span></div>
       <div class="ni" data-p="stor"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="16" height="14" rx="2"/><path d="M14 2v4M6 2v4M2 10h16"/></svg><span>Storico</span></div>
       <div class="ni" data-p="rep"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14l4-5 3 3 5-7"/><rect x="2" y="2" width="16" height="16" rx="2"/></svg><span>Report</span></div>
+      <div class="ni" data-p="anno"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="16" height="14" rx="2"/><path d="M14 2v4M6 2v4M2 10h16"/><path d="M5 14l3-2.5 3 2.5 4-4"/></svg><span>Anno</span></div>
       <div class="ni" data-p="proj"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6l7-4 7 4v8l-7 4-7-4V6z"/></svg><span>Progetti</span></div>
     </nav>
     <div class="sfoot">
@@ -155,13 +187,21 @@ hr{border:none;border-top:1px solid var(--border);margin:16px 0}
       </div>
       <div class="srow"><div class="sdot" id="sdot"></div><span id="slbl">pronto</span></div>
       <div class="mbox"><strong id="sbm">—</strong><span class="mh" id="sbh">0h 00m</span></div>
+      <button class="btn bg bsm bfl" onclick="exportJSON()" style="font-size:11px">&#11015; Esporta backup JSON</button>
     </div>
   </aside>
-  <main class="main">
+  <main class="main" id="main">
+    <!-- Dashboard -->
     <div class="page on" id="page-dash">
       <div class="ph"><div><h2>Dashboard</h2><p id="tlbl"></p></div><div class="g8"><select id="dm" style="width:auto"></select><button class="btn bp" onclick="goPage('ins')">+ Inserisci</button></div></div>
-      <div class="pc"><div class="sgrid" id="stats"></div><div class="cgrid"><div class="card"><div class="sec">Ore per progetto</div><div class="cbox"><canvas id="cP"></canvas></div></div><div class="card"><div class="sec">Ore giornaliere</div><div class="cbox"><canvas id="cD"></canvas></div></div></div><div class="card"><div class="fb" style="margin-bottom:12px"><div class="sec" style="margin:0">Ultimi inserimenti</div></div><div class="tw" id="dl"></div></div></div>
+      <div class="pc">
+        <div class="sgrid" id="stats"></div>
+        <div class="card" id="goal-card" style="margin-bottom:14px"><div id="goal-body"></div></div>
+        <div class="cgrid"><div class="card"><div class="sec">Ore per progetto</div><div class="cbox"><canvas id="cP"></canvas></div></div><div class="card"><div class="sec">Ore giornaliere</div><div class="cbox"><canvas id="cD"></canvas></div></div></div>
+        <div class="card"><div class="fb" style="margin-bottom:12px"><div class="sec" style="margin:0">Ultimi inserimenti</div></div><div class="tw" id="dl"></div></div>
+      </div>
     </div>
+    <!-- Inserisci Ore -->
     <div class="page" id="page-ins">
       <div class="ph"><div><h2 id="ins-title">Inserisci Ore</h2><p id="ins-sub">Registra le ore lavorate</p></div></div>
       <div class="pc"><div class="card">
@@ -172,30 +212,44 @@ hr{border:none;border-top:1px solid var(--border);margin:16px 0}
         <div class="fb"><span style="font-size:13px;color:var(--text3)">Totale: <strong id="it" style="color:var(--green);font-family:'DM Mono',monospace">0h 00m</strong></span><div class="g8"><button class="btn bg" onclick="resetForm()">Annulla</button><button class="btn bp" onclick="saveEntry()">Salva</button></div></div>
       </div></div>
     </div>
+    <!-- Storico -->
     <div class="page" id="page-stor">
       <div class="ph"><div><h2>Storico</h2><p>Tutti gli inserimenti</p></div></div>
       <div class="pc">
         <div class="card" style="margin-bottom:14px"><div class="filt">
-          <div class="fg" style="gap:4px"><label>Mese</label><select id="stm" style="min-width:150px" onchange="rStorDays()"></select></div>
+          <div class="fg" style="gap:4px"><label>Mese</label><select id="stm" style="min-width:150px" onchange="onStmChange()"></select></div>
           <div class="fg" style="gap:4px"><label>Giorno</label><select id="std" style="min-width:110px"><option value="">Tutti</option></select></div>
           <div class="fg" style="gap:4px"><label>Team</label><select id="stt" style="min-width:110px"><option value="">Tutti</option><option value="G&S">G&amp;S</option><option value="IRIDE">IRIDE</option></select></div>
           <div class="fg" style="gap:4px"><label>Progetto</label><select id="stp" style="min-width:170px"><option value="">Tutti</option></select></div>
-          <button class="btn bs bsm" onclick="rStor()">Filtra</button>
-          <button class="btn bg bsm" onclick="resetStor()">Reset</button>
+          <div class="fg" style="gap:4px"><label>Cerca note</label><input type="text" id="stq" placeholder="Testo libero..." style="min-width:150px" onkeydown="if(event.key==='Enter')rStor()"></div>
+          <div style="display:flex;gap:6px;align-self:flex-end">
+            <button class="btn bs bsm" id="btn-wk" onclick="toggleWF()" title="Filtra per settimana corrente">&#128197; Settimana</button>
+            <button class="btn bs bsm" onclick="rStor()">Filtra</button>
+            <button class="btn bg bsm" onclick="resetStor()">Reset</button>
+          </div>
         </div></div>
         <div class="card"><div class="tw" id="sb"></div></div>
       </div>
     </div>
+    <!-- Report -->
     <div class="page" id="page-rep">
       <div class="ph"><div><h2>Report Mensile</h2><p>Riepilogo ore per progetto</p></div><div class="g8"><select id="rm" style="width:auto"></select><button class="btn bs bsm" onclick="renderRep()">Aggiorna</button></div></div>
       <div class="pc" id="rb"></div>
     </div>
+    <!-- Anno -->
+    <div class="page" id="page-anno">
+      <div class="ph"><div><h2>Statistiche Annuali</h2><p>Heatmap e riepilogo per mese</p></div><div class="g8"><select id="ay" style="width:auto" onchange="rAnno()"></select></div></div>
+      <div class="pc" id="anno-content"></div>
+    </div>
+    <!-- Progetti -->
     <div class="page" id="page-proj">
       <div class="ph"><div><h2>Progetti</h2><p>Salvati in progetti.csv</p></div><button class="btn bp" onclick="openPM()">+ Nuovo progetto</button></div>
       <div class="pc"><div class="plist" id="pl"></div></div>
     </div>
   </main>
 </div>
+
+<!-- Modal: nuovo/modifica progetto -->
 <div class="mover" id="pm">
   <div class="modal">
     <h3 id="pm-title">Nuovo progetto</h3>
@@ -205,9 +259,24 @@ hr{border:none;border-top:1px solid var(--border);margin:16px 0}
     <div class="mf"><button class="btn bg" onclick="closePM()">Annulla</button><button class="btn bp" id="pm-save" onclick="savePM()">Crea</button></div>
   </div>
 </div>
+
+<!-- Modal: conferma eliminazione -->
+<div class="mover" id="cmod">
+  <div class="modal" style="width:400px">
+    <h3>Conferma eliminazione</h3>
+    <p id="cmod-msg" class="cmod-body"></p>
+    <div class="mf"><button class="btn bg" onclick="closeCM()">Annulla</button><button class="btn bd" id="cmod-ok">Elimina</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><div class="tdot"></div><span id="tm"></span></div>
 <script>
-const PH='id,nome,colore,team',OH='entry_id,sessione_id,progetto_id,data,ora_inizio,ora_fine,ore,desc_sessione,note_giornata,timestamp';
+// ── costanti CSV ────────────────────────────────────────────────────────────
+const PH='id,nome,colore,team';
+const OH='entry_id,sessione_id,progetto_id,data,ora_inizio,ora_fine,ore,desc_sessione,note_giornata,timestamp';
+
+// ── utilità ─────────────────────────────────────────────────────────────────
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function qc(v){v=String(v==null?'':v);return(v.includes(',')||v.includes('"')||v.includes('\n'))?'"'+v.replace(/"/g,'""')+'"':v}
 function rc(a){return a.map(qc).join(',')}
 function pcsv(t){
@@ -217,12 +286,20 @@ function pcsv(t){
 }
 function p2c(){return[PH,...P.map(p=>rc([p.id,p.nome,p.colore,p.team||'']))].join('\n')}
 function o2c(){const R=[OH];for(const e of E)for(const s of e.sessions)R.push(rc([e.id,s.id,e.pid,e.date,s.s||'',s.e||'',s.h,s.n||'',e.note||'',e.ts||'']));return R.join('\n')}
+
+// ── IndexedDB ────────────────────────────────────────────────────────────────
 let DIR=null;
 function oidb(){return new Promise((ok,ko)=>{const r=indexedDB.open('tl',1);r.onupgradeneeded=e=>e.target.result.createObjectStore('h');r.onsuccess=e=>ok(e.target.result);r.onerror=ko})}
 async function iset(v){const d=await oidb();return new Promise((ok,ko)=>{const t=d.transaction('h','readwrite');t.objectStore('h').put(v,'dir');t.oncomplete=ok;t.onerror=ko})}
 async function iget(){const d=await oidb();return new Promise(ok=>{const r=d.transaction('h','readonly').objectStore('h').get('dir');r.onsuccess=()=>ok(r.result||null);r.onerror=()=>ok(null)})}
 async function rf(n){try{const f=await DIR.getFileHandle(n,{create:false});return await(await f.getFile()).text()}catch{return null}}
 async function wf(n,c){const f=await DIR.getFileHandle(n,{create:true});const w=await f.createWritable();await w.write(c);await w.close()}
+
+// ── coda di scrittura (evita scritture parallele) ────────────────────────────
+let _wq=Promise.resolve();
+function qw(fn){return(_wq=_wq.then(fn).catch(e=>console.error('write error',e)))}
+
+// ── dati ─────────────────────────────────────────────────────────────────────
 let P=[],E=[];
 async function load(){
   const pt=await rf('progetti.csv');
@@ -230,11 +307,15 @@ async function load(){
   const ot=await rf('ore.csv');
   if(ot){const m={};for(const r of pcsv(ot)){const id=r[0];if(!id)continue;if(!m[id])m[id]={id,pid:r[2],date:normDate(r[3]),note:r[8]||'',ts:r[9]||'',sessions:[],total:0};const h=parseFloat(r[6])||0;m[id].sessions.push({id:r[1],s:r[4],e:r[5],h,n:r[7]||''});m[id].total+=h}E=Object.values(m)}else E=[];
 }
-let st=null;
-async function svp(){ss();await wf('progetti.csv',p2c());sd()}
-async function svo(){ss();await wf('ore.csv',o2c());sd()}
-function ss(){clearTimeout(st);document.getElementById('sdot').className='sdot saving';document.getElementById('slbl').textContent='salvataggio...'}
-function sd(){st=setTimeout(()=>{document.getElementById('sdot').className='sdot';document.getElementById('slbl').textContent='salvato'},600)}
+
+// ── salvataggio ───────────────────────────────────────────────────────────────
+let _st=null;
+function ss(){clearTimeout(_st);document.getElementById('sdot').className='sdot saving';document.getElementById('slbl').textContent='salvataggio...'}
+function sd(){_st=setTimeout(()=>{document.getElementById('sdot').className='sdot';document.getElementById('slbl').textContent='salvato'},600)}
+async function svp(){ss();await qw(()=>wf('progetti.csv',p2c()));sd();_dirtyDash=true}
+async function svo(){ss();await qw(()=>wf('ore.csv',o2c()));sd();_dirtyDash=true;checkOB()}
+
+// ── palette e helper ──────────────────────────────────────────────────────────
 const PAL=[{id:'green',c:'#4ade80'},{id:'blue',c:'#60a5fa'},{id:'amber',c:'#fbbf24'},{id:'coral',c:'#f87171'},{id:'purple',c:'#a78bfa'},{id:'teal',c:'#2dd4bf'},{id:'pink',c:'#f472b6'},{id:'orange',c:'#fb923c'}];
 const MN=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 function gc(id){return(PAL.find(p=>p.id===id)||PAL[0]).c}
@@ -249,15 +330,111 @@ function fd(d){const[y,m,day]=d.split('-');return`${day}/${m}/${y}`}
 function hl(h){const w=Math.floor(h),m=Math.round((h-w)*60);return w+'h '+(m<10?'0':'')+m+'m'}
 function ml(s){const[y,m]=s.split('-');return MN[parseInt(m)-1]+' '+y}
 function ayms(){const s=new Set(E.map(e=>ym(e.date)));s.add(cym());return[...s].sort().reverse()}
-function tb(t){if(!t)return'';return`<span class="tbadge ${t==='G&S'?'tgs':'tir'}">${t}</span>`}
+function tb(t){if(!t)return'';return`<span class="tbadge ${t==='G&S'?'tgs':'tir'}">${esc(t)}</span>`}
 function wd(ys){const[y,m]=ys.split('-').map(Number);let n=0,d=new Date(y,m-1,1);while(d.getMonth()===m-1){const w=d.getDay();if(w&&w<6)n++;d.setDate(d.getDate()+1)}return n}
 function toast(msg,err=false){const t=document.getElementById('toast');document.getElementById('tm').textContent=msg;t.classList.toggle('err',err);t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2800)}
+
+// ── navigazione ───────────────────────────────────────────────────────────────
 function goPage(n){
   document.querySelectorAll('.ni').forEach(el=>el.classList.toggle('on',el.dataset.p===n));
   document.querySelectorAll('.page').forEach(el=>el.classList.toggle('on',el.id==='page-'+n));
-  if(n==='dash')rDash();if(n==='stor')rStor();if(n==='rep')rRep();if(n==='proj')rProj();if(n==='ins'){editEid=null;initF();}
+  if(n==='dash')rDash();
+  if(n==='stor')rStor();
+  if(n==='rep')rRep();
+  if(n==='proj')rProj();
+  if(n==='anno')rAnnoInit();
+  if(n==='ins')initF();
+  if(n==='ins')startLT();else stopLT();
 }
 document.querySelectorAll('.ni').forEach(el=>el.addEventListener('click',()=>goPage(el.dataset.p)));
+
+// ── modal conferma eliminazione ───────────────────────────────────────────────
+let _cmCb=null;
+function openCM(msg,cb){
+  document.getElementById('cmod-msg').textContent=msg;
+  _cmCb=cb;
+  document.getElementById('cmod').classList.add('on');
+}
+function closeCM(){document.getElementById('cmod').classList.remove('on');_cmCb=null}
+document.getElementById('cmod').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCM()});
+document.getElementById('cmod-ok').addEventListener('click',()=>{if(_cmCb){const f=_cmCb;_cmCb=null;closeCM();f()}});
+
+// ── scorciatoie tastiera ──────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePM();closeCM()}});
+
+// ── timer live per sessioni aperte ────────────────────────────────────────────
+let _ltInt=null;
+function startLT(){stopLT();_ltInt=setInterval(tickLT,60000);tickLT()}
+function stopLT(){if(_ltInt){clearInterval(_ltInt);_ltInt=null}}
+function tickLT(){
+  let changed=false;
+  rows.forEach(r=>{
+    if(r.s&&!r.e){
+      const h=calcH(r.s,tot());
+      if(h!==null&&h!==r.h){r.h=h;const el=document.getElementById('h-'+r.id);if(el)el.value=h;changed=true}
+    }
+  });
+  if(changed)ct();
+}
+
+// ── banner sessione aperta ────────────────────────────────────────────────────
+let _openSess=null;
+function checkOB(){
+  _openSess=null;
+  for(const e of E){
+    for(const s of e.sessions){
+      if(s.s&&!s.e){const p=gp(e.pid)||{nome:'?'};_openSess={eid:e.id,sid:s.id,s:s.s,pname:p.nome,date:e.date};break}
+    }
+    if(_openSess)break;
+  }
+  const ob=document.getElementById('ob'),mn=document.getElementById('main');
+  if(_openSess){
+    document.getElementById('ob-txt').textContent=`Sessione aperta: ${esc(_openSess.pname)} — ${fd(_openSess.date)} dalle ${_openSess.s}`;
+    ob.classList.add('on');mn.classList.add('has-ob');
+  }else{
+    ob.classList.remove('on');mn.classList.remove('has-ob');
+  }
+}
+async function closeOpenSess(){
+  if(!_openSess)return;
+  const e=E.find(x=>x.id===_openSess.eid);if(!e)return;
+  const s=e.sessions.find(x=>x.id===_openSess.sid);if(!s)return;
+  const now=tot();s.e=now;
+  const h=calcH(s.s,now);
+  if(h!==null){s.h=parseFloat(h);e.total=e.sessions.reduce((t,x)=>t+(parseFloat(x.h)||0),0)}
+  await svo();uSB();toast('Sessione chiusa alle '+now);
+}
+function goToOpenSess(){if(_openSess)editE(_openSess.eid)}
+
+// ── obiettivo mensile ─────────────────────────────────────────────────────────
+let _goal=160;
+async function loadGoal(){
+  const d=await oidb();
+  return new Promise(ok=>{const r=d.transaction('h','readonly').objectStore('h').get('goal');r.onsuccess=()=>ok(r.result||160);r.onerror=()=>ok(160)})
+}
+async function saveGoal(h){
+  _goal=h;
+  const d=await oidb();
+  return new Promise((ok,ko)=>{const t=d.transaction('h','readwrite');t.objectStore('h').put(h,'goal');t.oncomplete=ok;t.onerror=ko})
+}
+function editGoal(){
+  document.getElementById('goal-body').innerHTML=`<div class="fb"><div class="fg" style="flex:1;max-width:280px"><label>Obiettivo mensile (ore)</label><input type="number" id="goal-inp" min="1" max="9999" step="1" value="${_goal}"></div><div class="g8" style="align-self:flex-end"><button class="btn bg bsm" onclick="_dirtyDash=true;rDash()">Annulla</button><button class="btn bp bsm" onclick="doSaveGoal()">Salva</button></div></div>`;
+  setTimeout(()=>document.getElementById('goal-inp')?.focus(),30)
+}
+async function doSaveGoal(){
+  const v=parseInt(document.getElementById('goal-inp')?.value)||0;
+  if(v>0){await saveGoal(v);_dirtyDash=true;rDash();toast('Obiettivo: '+v+'h/mese')}else toast('Valore non valido',true)
+}
+
+// ── esporta backup JSON ───────────────────────────────────────────────────────
+function exportJSON(){
+  const data={version:1,exported:new Date().toISOString(),progetti:P,ore:E};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='timelog-backup-'+tod()+'.json';a.click();URL.revokeObjectURL(a.href);
+  toast('Backup JSON esportato')
+}
+
+// ── modal progetto ────────────────────────────────────────────────────────────
 let sCol='green',sTm='',editPid=null;
 function openPM(id){
   editPid=id||null;
@@ -277,40 +454,62 @@ async function savePM(){
   const n=document.getElementById('pn').value.trim();
   if(!n){toast('Inserisci il nome',true);return}
   if(!sTm){toast('Seleziona il team',true);return}
-  if(editPid){const p=P.find(x=>x.id===editPid);if(p){p.nome=n;p.colore=sCol;p.team=sTm;}
-  }else{P.push({id:uid(),nome:n,colore:sCol,team:sTm});}
-  await svp();uPS();rProj();closePM();toast('"'+n+'" salvato in progetti.csv');
+  if(editPid){const p=P.find(x=>x.id===editPid);if(p){p.nome=n;p.colore=sCol;p.team=sTm}}
+  else{P.push({id:uid(),nome:n,colore:sCol,team:sTm})}
+  await svp();uPS();rProj();closePM();toast('"'+n+'" salvato in progetti.csv')
 }
 async function delP(id){
+  const p=P.find(x=>x.id===id);if(!p)return;
   const c=E.filter(e=>e.pid===id).length;
-  if(c&&!confirm(`Il progetto ha ${c} inserimenti. Eliminare tutto?`))return;
-  P=P.filter(p=>p.id!==id);E=E.filter(e=>e.pid!==id);
-  await svp();await svo();uPS();rProj();toast('Progetto eliminato');
+  openCM(c?`Il progetto "${p.nome}" ha ${c} inserimento/i. Eliminare tutto?`:`Eliminare il progetto "${p.nome}"?`,async()=>{
+    P=P.filter(x=>x.id!==id);E=E.filter(e=>e.pid!==id);
+    await svp();await svo();uPS();rProj();toast('Progetto eliminato')
+  })
 }
-function uPS(){const o=P.map(p=>`<option value="${p.id}">${p.nome}${p.team?' ['+p.team+']':''}</option>`).join('');document.getElementById('ip').innerHTML='<option value="">— Seleziona —</option>'+o}
+
+// ── form inserimento ore ──────────────────────────────────────────────────────
+function uPS(){
+  const o=P.map(p=>`<option value="${esc(p.id)}">${esc(p.nome)}${p.team?' ['+esc(p.team)+']':''}</option>`).join('');
+  document.getElementById('ip').innerHTML='<option value="">— Seleziona —</option>'+o
+}
 let rows=[],editEid=null;
-function initF(){editEid=null;document.getElementById('ins-title').textContent='Inserisci Ore';document.getElementById('ins-sub').textContent='Registra le ore lavorate';document.getElementById('id').value=tod();document.getElementById('in').value='';rows=[];addRow();uPS()}
+function initF(){
+  editEid=null;
+  document.getElementById('ins-title').textContent='Inserisci Ore';
+  document.getElementById('ins-sub').textContent='Registra le ore lavorate';
+  document.getElementById('id').value=tod();
+  document.getElementById('in').value='';
+  rows=[];addRow();uPS()
+}
 function editE(id){
   const e=E.find(x=>x.id===id);if(!e)return;
+  goPage('ins');
   editEid=id;
-  document.querySelectorAll('.ni').forEach(el=>el.classList.toggle('on',el.dataset.p==='ins'));
-  document.querySelectorAll('.page').forEach(el=>el.classList.toggle('on',el.id==='page-ins'));
   uPS();
   document.getElementById('ip').value=e.pid;
   document.getElementById('id').value=e.date;
   document.getElementById('in').value=e.note||'';
-  rows=e.sessions.map(s=>{let h=String(s.h||'');if(s.s&&s.e){const[sh,sm]=s.s.split(':').map(Number),[eh,em]=s.e.split(':').map(Number);const d=(eh*60+em)-(sh*60+sm);if(d>0)h=(d/60).toFixed(2);}return{id:s.id,s:s.s||'',e:s.e||'',h,n:s.n||''};});
+  rows=e.sessions.map(s=>{let h=String(s.h||'');if(s.s&&s.e){const[sh,sm]=s.s.split(':').map(Number),[eh,em]=s.e.split(':').map(Number);const d=(eh*60+em)-(sh*60+sm);if(d>0)h=(d/60).toFixed(2)}return{id:s.id,s:s.s||'',e:s.e||'',h,n:s.n||''}});
   rR();
   document.getElementById('ins-title').textContent='Modifica Ore';
-  document.getElementById('ins-sub').textContent='Modifica le ore registrate';
+  document.getElementById('ins-sub').textContent='Modifica le ore registrate'
 }
 function addRow(){rows.push({id:uid(),s:tot(),e:'',h:'',n:''});rR()}
 function remRow(id){if(rows.length<=1){toast('Almeno una sessione',true);return}rows=rows.filter(r=>r.id!==id);rR()}
 function calcH(s,e){if(!s||!e)return null;const[sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);const d=(eh*60+em)-(sh*60+sm);return d>0?(d/60).toFixed(2):null}
-function onTC(id,f,v){if(!v)return;const r=rows.find(x=>x.id===id);if(!r)return;r[f]=v;const h=calcH(r.s,r.e);if(h!==null){r.h=h;const el=document.getElementById('h-'+id);if(el)el.value=h;}ct();}
+function onTC(id,f,v){if(!v)return;const r=rows.find(x=>x.id===id);if(!r)return;r[f]=v;const h=calcH(r.s,r.e);if(h!==null){r.h=h;const el=document.getElementById('h-'+id);if(el)el.value=h}ct()}
 function rR(){
-  document.getElementById('rows').innerHTML=rows.map(r=>`<div class="rrow"><div class="fg" style="gap:4px"><label>Inizio</label><input type="time" value="${r.s}" onchange="onTC('${r.id}','s',this.value)" oninput="onTC('${r.id}','s',this.value)"></div><div class="fg" style="gap:4px"><label>Fine</label><input type="time" value="${r.e}" onchange="onTC('${r.id}','e',this.value)" oninput="onTC('${r.id}','e',this.value)"></div><div class="fg" style="gap:4px"><label>Ore</label><input type="number" id="h-${r.id}" min="0" max="24" step="0.25" value="${r.h}" placeholder="0" onchange="(function(v){const r=rows.find(x=>x.id==='${r.id}');if(r){r.h=v;ct();}})(this.value)"></div><div class="fg" style="gap:4px"><label>Descrizione</label><input type="text" value="${r.n}" placeholder="Attivita..." onchange="(function(v){const r=rows.find(x=>x.id==='${r.id}');if(r)r.n=v;})(this.value)"></div><div style="align-self:flex-end"><button class="btn bd bic bsm" onclick="remRow('${r.id}')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button></div></div>`).join('');
-  ct();
+  document.getElementById('rows').innerHTML=rows.map(r=>{
+    const open=r.s&&!r.e;
+    return`<div class="rrow">
+      <div class="fg" style="gap:4px"><label>Inizio</label><input type="time" value="${esc(r.s)}" onchange="onTC('${r.id}','s',this.value)" oninput="onTC('${r.id}','s',this.value)"></div>
+      <div class="fg" style="gap:4px"><label>Fine</label><input type="time" value="${esc(r.e)}" onchange="onTC('${r.id}','e',this.value)" oninput="onTC('${r.id}','e',this.value)"></div>
+      <div class="fg" style="gap:4px"><label>Ore${open?'<span class="live-dot" title="Timer live attivo"></span>':''}</label><input type="number" id="h-${r.id}" min="0" max="24" step="0.25" value="${esc(r.h)}" placeholder="0" onchange="(function(v){const r=rows.find(x=>x.id==='${r.id}');if(r){r.h=v;ct();}})(this.value)"></div>
+      <div class="fg" style="gap:4px"><label>Descrizione</label><input type="text" value="${esc(r.n)}" placeholder="Attività..." onchange="(function(v){const r=rows.find(x=>x.id==='${r.id}');if(r)r.n=v;})(this.value)"></div>
+      <div style="align-self:flex-end"><button class="btn bd bic bsm" onclick="remRow('${r.id}')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button></div>
+    </div>`
+  }).join('');
+  ct()
 }
 function ct(){const t=rows.reduce((s,r)=>s+(parseFloat(r.h)||0),0);document.getElementById('it').textContent=hl(t)}
 function resetForm(){initF()}
@@ -322,36 +521,68 @@ async function saveEntry(){
   if(!v.length){toast('Inserisci almeno una sessione con ore > 0',true);return}
   if(editEid){
     const idx=E.findIndex(e=>e.id===editEid);
-    if(idx>=0)E[idx]={...E[idx],pid,date,note,sessions:v.map(r=>({id:r.id||uid(),s:r.s,e:r.e,h:parseFloat(r.h)||0,n:r.n})),total:v.reduce((s,r)=>s+(parseFloat(r.h)||0),0)};
+    if(idx>=0)E[idx]={...E[idx],pid,date,note,sessions:v.map(r=>({id:r.id||uid(),s:r.s,e:r.e,h:parseFloat(r.h)||0,n:r.n})),total:v.reduce((s,r)=>s+(parseFloat(r.h)||0),0)}
   }else{
-    E.unshift({id:uid(),pid,date,note,ts:new Date().toISOString(),sessions:v.map(r=>({id:uid(),s:r.s,e:r.e,h:parseFloat(r.h)||0,n:r.n})),total:v.reduce((s,r)=>s+(parseFloat(r.h)||0),0)});
+    E.unshift({id:uid(),pid,date,note,ts:new Date().toISOString(),sessions:v.map(r=>({id:uid(),s:r.s,e:r.e,h:parseFloat(r.h)||0,n:r.n})),total:v.reduce((s,r)=>s+(parseFloat(r.h)||0),0)})
   }
-  await svo();uSB();toast(editEid?'Ore aggiornate in ore.csv':'Ore salvate in ore.csv');resetForm();
+  await svo();uSB();toast(editEid?'Ore aggiornate in ore.csv':'Ore salvate in ore.csv');resetForm()
 }
-let cP=null,cD=null;
+
+// ── dashboard ──────────────────────────────────────────────────────────────────
+let cP=null,cD=null,_dashYM=null,_dirtyDash=true;
 function rDash(){
   const yms=ayms(),sel=document.getElementById('dm');
-  sel.innerHTML=yms.map(m=>`<option value="${m}">${ml(m)}</option>`).join('');sel.onchange=rDash;
+  sel.innerHTML=yms.map(m=>`<option value="${m}">${ml(m)}</option>`).join('');
   const cur=sel.value||cym(),ent=E.filter(e=>ym(e.date)===cur);
   const totH=ent.reduce((s,e)=>s+e.total,0),days=new Set(ent.map(e=>e.date)).size,pset=new Set(ent.map(e=>e.pid)).size,avg=days?totH/days:0;
-  document.getElementById('stats').innerHTML=`<div class="stat g"><div class="lbl">Ore totali</div><div class="val">${totH.toFixed(1)}</div><div class="sub">${ml(cur)}</div></div><div class="stat b"><div class="lbl">Giorni lavorati</div><div class="val">${days}</div><div class="sub">giorni registrati</div></div><div class="stat a"><div class="lbl">Media/giorno</div><div class="val">${avg.toFixed(1)}</div><div class="sub">ore medie</div></div><div class="stat p"><div class="lbl">Progetti attivi</div><div class="val">${pset}</div><div class="sub">questo mese</div></div>`;
-  const bp={};ent.forEach(e=>bp[e.pid]=(bp[e.pid]||0)+e.total);
-  if(cP)cP.destroy();
-  cP=new Chart(document.getElementById('cP').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(bp).map(id=>(gp(id)||{nome:'?'}).nome),datasets:[{data:Object.values(bp),backgroundColor:Object.keys(bp).map(id=>gc((gp(id)||{colore:'green'}).colore)),borderWidth:0,hoverOffset:5}]},options:{plugins:{legend:{labels:{color:'#9ba3be',font:{size:11},padding:10}}},cutout:'62%',responsive:true,maintainAspectRatio:false}});
-  const bd={};ent.forEach(e=>bd[e.date]=(bd[e.date]||0)+e.total);const dd=Object.keys(bd).sort();
-  if(cD)cD.destroy();
-  cD=new Chart(document.getElementById('cD').getContext('2d'),{type:'bar',data:{labels:dd.map(d=>d.slice(8)+'/'+d.slice(5,7)),datasets:[{data:dd.map(d=>bd[d]),backgroundColor:'rgba(74,222,128,.2)',borderColor:'#4ade80',borderWidth:1.5,borderRadius:3}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#9ba3be',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#9ba3be',font:{size:11}},beginAtZero:true}},responsive:true,maintainAspectRatio:false}});
+  const ac=avg>=7.5?'g':avg>=4?'a':'p';
+  const asub=avg>=7.5?'ottimo':avg>=4?'nella media':'sotto media';
+  document.getElementById('stats').innerHTML=
+    `<div class="stat g"><div class="lbl">Ore totali</div><div class="val">${totH.toFixed(1)}</div><div class="sub">${ml(cur)}</div></div>`+
+    `<div class="stat b"><div class="lbl">Giorni lavorati</div><div class="val">${days}</div><div class="sub">giorni registrati</div></div>`+
+    `<div class="stat ${ac}"><div class="lbl">Media/giorno</div><div class="val">${avg.toFixed(1)}</div><div class="sub">${asub}</div></div>`+
+    `<div class="stat p"><div class="lbl">Progetti attivi</div><div class="val">${pset}</div><div class="sub">questo mese</div></div>`;
+  // goal card
+  const gPct=Math.min(100,_goal?(totH/_goal*100):0);
+  const gColor=gPct>=100?'var(--green)':gPct>=75?'var(--blue)':gPct>=50?'var(--amber)':'var(--coral)';
+  const gRem=Math.max(0,_goal-totH);
+  document.getElementById('goal-body').innerHTML=`<div class="fb"><div style="flex:1"><div class="fb" style="margin-bottom:0"><span style="font-weight:500;font-size:13px">Obiettivo mensile</span><span style="font-family:'DM Mono',monospace;font-size:20px;font-weight:600;color:${gColor}">${gPct.toFixed(0)}%</span></div><div class="goal-bar"><div class="goal-barf" style="width:${gPct}%;background:${gColor}"></div></div><div style="font-size:11px;color:var(--text3)">${hl(totH)} di ${_goal}h — ${gPct<100?hl(gRem)+' rimanenti':'obiettivo raggiunto!'}</div></div><button class="btn bg bsm" style="margin-left:16px;align-self:flex-start;flex-shrink:0" onclick="editGoal()">Modifica</button></div>`;
+  // ricrea grafici solo se il mese è cambiato o i dati sono stati modificati
+  if(cur!==_dashYM||_dirtyDash){
+    _dashYM=cur;_dirtyDash=false;
+    const bp={};ent.forEach(e=>bp[e.pid]=(bp[e.pid]||0)+e.total);
+    if(cP)cP.destroy();
+    cP=new Chart(document.getElementById('cP').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(bp).map(id=>(gp(id)||{nome:'?'}).nome),datasets:[{data:Object.values(bp),backgroundColor:Object.keys(bp).map(id=>gc((gp(id)||{colore:'green'}).colore)),borderWidth:0,hoverOffset:5}]},options:{plugins:{legend:{labels:{color:'#9ba3be',font:{size:11},padding:10}}},cutout:'62%',responsive:true,maintainAspectRatio:false}});
+    const bd={};ent.forEach(e=>bd[e.date]=(bd[e.date]||0)+e.total);const dd=Object.keys(bd).sort();
+    if(cD)cD.destroy();
+    cD=new Chart(document.getElementById('cD').getContext('2d'),{type:'bar',data:{labels:dd.map(d=>d.slice(8)+'/'+d.slice(5,7)),datasets:[{data:dd.map(d=>bd[d]),backgroundColor:'rgba(74,222,128,.2)',borderColor:'#4ade80',borderWidth:1.5,borderRadius:3}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#9ba3be',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#9ba3be',font:{size:11}},beginAtZero:true}},responsive:true,maintainAspectRatio:false}})
+  }
   const rec=ent.slice(0,10),dl=document.getElementById('dl');
   if(!rec.length){dl.innerHTML='<div class="empty">Nessun inserimento in questo mese.</div>';return}
-  dl.innerHTML=`<table><thead><tr><th>Data</th><th>Progetto</th><th>Team</th><th>Sessioni</th><th>Ore</th><th>Note</th></tr></thead><tbody>${rec.map(e=>{const p=gp(e.pid)||{nome:'—',colore:'gray',team:''};return`<tr><td class="tm">${fd(e.date)}</td><td class="tpj"><span class="pdot"><span class="dot" style="background:${gc(p.colore)}"></span>${p.nome}</span></td><td>${tb(p.team)}</td><td><span class="pill pb">${e.sessions.length}</span></td><td class="th">${hl(e.total)}</td><td style="color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.note||'—'}</td></tr>`}).join('')}</tbody></table>`;
+  dl.innerHTML=`<table><thead><tr><th>Data</th><th>Progetto</th><th>Team</th><th>Sessioni</th><th>Ore</th><th>Note</th></tr></thead><tbody>${rec.map(e=>{const p=gp(e.pid)||{nome:'—',colore:'gray',team:''};return`<tr><td class="tm">${fd(e.date)}</td><td class="tpj"><span class="pdot"><span class="dot" style="background:${gc(p.colore)}"></span>${esc(p.nome)}</span></td><td>${tb(p.team)}</td><td><span class="pill pb">${e.sessions.length}</span></td><td class="th">${hl(e.total)}</td><td style="color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.note)||'—'}</td></tr>`}).join('')}</tbody></table>`
 }
+
+// ── storico ───────────────────────────────────────────────────────────────────
+let _wkF=null;
+function wkRange(){
+  const n=new Date(),dw=n.getDay(),diff=dw===0?-6:1-dw;
+  const mn=new Date(n);mn.setDate(n.getDate()+diff);
+  const su=new Date(mn);su.setDate(mn.getDate()+6);
+  const fmt=x=>x.getFullYear()+'-'+(x.getMonth()+1).toString().padStart(2,'0')+'-'+x.getDate().toString().padStart(2,'0');
+  return{f:fmt(mn),t:fmt(su)}
+}
+function toggleWF(){
+  _wkF=_wkF?null:wkRange();
+  document.getElementById('btn-wk').classList.toggle('wk-on',!!_wkF);
+  rStor()
+}
+function onStmChange(){_wkF=null;document.getElementById('btn-wk').classList.remove('wk-on');rStorDays()}
 function rStorDays(){
   const cm=document.getElementById('stm').value||cym();
   const days=[...new Set(E.filter(e=>ym(e.date)===cm).map(e=>e.date))].sort();
-  const sd=document.getElementById('std');
-  const prev=sd.value;
+  const sd=document.getElementById('std'),prev=sd.value;
   sd.innerHTML='<option value="">Tutti</option>'+days.map(d=>`<option value="${d}">${fd(d)}</option>`).join('');
-  sd.value=days.includes(prev)?prev:'';
+  sd.value=days.includes(prev)?prev:''
 }
 function rStor(){
   const yms=ayms(),sm=document.getElementById('stm');
@@ -359,46 +590,210 @@ function rStor(){
   const cm=sm.value||cym();
   rStorDays();
   const tv=document.getElementById('stt').value,sp=document.getElementById('stp').value,sd=document.getElementById('std').value;
+  const q=(document.getElementById('stq').value||'').trim().toLowerCase();
   const fp=tv?P.filter(p=>p.team===tv):P;
-  document.getElementById('stp').innerHTML='<option value="">Tutti</option>'+fp.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+  document.getElementById('stp').innerHTML='<option value="">Tutti</option>'+fp.map(p=>`<option value="${esc(p.id)}">${esc(p.nome)}</option>`).join('');
   document.getElementById('stp').value=fp.find(p=>p.id===sp)?sp:'';
   const pid=document.getElementById('stp').value;
-  let list=E.filter(e=>ym(e.date)===cm);
-  if(sd)list=list.filter(e=>e.date===sd);
+  let list;
+  if(_wkF){
+    list=E.filter(e=>e.date>=_wkF.f&&e.date<=_wkF.t);
+  }else{
+    list=E.filter(e=>ym(e.date)===cm);
+    if(sd)list=list.filter(e=>e.date===sd);
+  }
   if(tv)list=list.filter(e=>(gp(e.pid)||{}).team===tv);
   if(pid)list=list.filter(e=>e.pid===pid);
+  if(q)list=list.filter(e=>(e.note||'').toLowerCase().includes(q)||e.sessions.some(s=>(s.n||'').toLowerCase().includes(q)));
   list.sort((a,b)=>b.date.localeCompare(a.date));
   const c=document.getElementById('sb');
   if(!list.length){c.innerHTML='<div class="empty">Nessun inserimento trovato.</div>';return}
-  c.innerHTML=`<table><thead><tr><th>Data</th><th>Progetto</th><th>Team</th><th>Sessioni</th><th>Ore</th><th>Note</th><th></th></tr></thead><tbody>${list.map(e=>{const p=gp(e.pid)||{nome:'—',colore:'gray',team:''};const sess=e.sessions.map(s=>`<div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${s.s&&s.e?s.s+'→'+s.e+' ':''}${s.h.toFixed(2)}h${s.n?' — '+s.n:''}</div>`).join('');return`<tr><td class="tm">${fd(e.date)}</td><td class="tpj"><span class="pdot"><span class="dot" style="background:${gc(p.colore)}"></span>${p.nome}</span></td><td>${tb(p.team)}</td><td>${sess}</td><td class="th">${hl(e.total)}</td><td style="color:var(--text3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.note||'—'}</td><td style="white-space:nowrap"><button class="btn bg bic bsm" onclick="editE('${e.id}')" title="Modifica" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg></button><button class="btn bd bic bsm" onclick="delE('${e.id}')"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button></td></tr>`}).join('')}</tbody></table>`;
+  c.innerHTML=`<table><thead><tr><th>Data</th><th>Progetto</th><th>Team</th><th>Sessioni</th><th>Ore</th><th>Note</th><th></th></tr></thead><tbody>${list.map(e=>{
+    const p=gp(e.pid)||{nome:'—',colore:'gray',team:''};
+    const sess=e.sessions.map(s=>`<div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${s.s&&s.e?s.s+'→'+s.e+' ':''}${s.h.toFixed(2)}h${s.n?' — '+esc(s.n):''}</div>`).join('');
+    return`<tr><td class="tm">${fd(e.date)}</td><td class="tpj"><span class="pdot"><span class="dot" style="background:${gc(p.colore)}"></span>${esc(p.nome)}</span></td><td>${tb(p.team)}</td><td>${sess}</td><td class="th">${hl(e.total)}</td><td style="color:var(--text3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.note)||'—'}</td><td style="white-space:nowrap"><button class="btn bg bic bsm" onclick="editE('${e.id}')" title="Modifica" style="margin-right:4px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg></button><button class="btn bd bic bsm" onclick="delE('${e.id}')"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button></td></tr>`
+  }).join('')}</tbody></table>`
 }
-function resetStor(){document.getElementById('stm').value=cym();document.getElementById('std').value='';document.getElementById('stt').value='';document.getElementById('stp').innerHTML='<option value="">Tutti</option>'+P.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');document.getElementById('stp').value='';rStor()}
-async function delE(id){if(!confirm('Eliminare questo inserimento?'))return;E=E.filter(e=>e.id!==id);await svo();uSB();rStor();toast('Inserimento eliminato')}
+function resetStor(){
+  _wkF=null;
+  document.getElementById('btn-wk').classList.remove('wk-on');
+  document.getElementById('stm').value=cym();
+  document.getElementById('std').value='';
+  document.getElementById('stt').value='';
+  document.getElementById('stq').value='';
+  document.getElementById('stp').innerHTML='<option value="">Tutti</option>'+P.map(p=>`<option value="${esc(p.id)}">${esc(p.nome)}</option>`).join('');
+  document.getElementById('stp').value='';
+  rStor()
+}
+async function delE(id){
+  const e=E.find(x=>x.id===id);if(!e)return;
+  const p=gp(e.pid);
+  openCM(`Eliminare l'inserimento del ${fd(e.date)}${p?' ('+p.nome+')':''}?`,async()=>{
+    E=E.filter(x=>x.id!==id);await svo();uSB();rStor();toast('Inserimento eliminato')
+  })
+}
+
+// ── report ────────────────────────────────────────────────────────────────────
 function rRep(){
   const yms=ayms(),sel=document.getElementById('rm');
   if(!sel.children.length)sel.innerHTML=yms.map(m=>`<option value="${m}">${ml(m)}</option>`).join('');
-  const cur=sel.value||cym(),ent=E.filter(e=>ym(e.date)===cur);
+  renderRep()
+}
+function renderRep(){
+  const cur=document.getElementById('rm').value||cym(),ent=E.filter(e=>ym(e.date)===cur);
   const totH=ent.reduce((s,e)=>s+e.total,0),days=new Set(ent.map(e=>e.date)).size;
   const wdays=wd(cur),ot=wdays*8;
   const bp={};ent.forEach(e=>{if(!bp[e.pid])bp[e.pid]={h:0,days:new Set(),sess:0};bp[e.pid].h+=e.total;bp[e.pid].days.add(e.date);bp[e.pid].sess+=e.sessions.length});
   const sorted=Object.entries(bp).sort((a,b)=>b[1].h-a[1].h);
   if(!sorted.length){document.getElementById('rb').innerHTML='<div class="empty">Nessun dato per questo mese.</div>';return}
-  const cards=sorted.map(([pid,d])=>{const p=gp(pid)||{nome:'—',colore:'green',team:''};const pct=totH?((d.h/totH)*100).toFixed(0):0;return`<div class="sc2"><div style="width:32px;height:32px;border-radius:8px;background:${gc(p.colore)}22;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="dot" style="width:10px;height:10px;background:${gc(p.colore)}"></span></div><div class="sc2i"><div class="sc2n">${p.nome} ${tb(p.team)}</div><div class="bar"><div class="barf" style="width:${pct}%;background:${gc(p.colore)}"></div></div><div class="sc2s">${d.days.size} gg · ${d.sess} sess. · ${pct}%</div></div><div class="sc2h">${hl(d.h)}</div></div>`}).join('');
+  const cards=sorted.map(([pid,d])=>{const p=gp(pid)||{nome:'—',colore:'green',team:''};const pct=totH?((d.h/totH)*100).toFixed(0):0;return`<div class="sc2"><div style="width:32px;height:32px;border-radius:8px;background:${gc(p.colore)}22;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="dot" style="width:10px;height:10px;background:${gc(p.colore)}"></span></div><div class="sc2i"><div class="sc2n">${esc(p.nome)} ${tb(p.team)}</div><div class="bar"><div class="barf" style="width:${pct}%;background:${gc(p.colore)}"></div></div><div class="sc2s">${d.days.size} gg · ${d.sess} sess. · ${pct}%</div></div><div class="sc2h">${hl(d.h)}</div></div>`}).join('');
   const bd={};ent.forEach(e=>{if(!bd[e.date])bd[e.date]=[];bd[e.date].push(e)});
-  const dr=Object.keys(bd).sort().reverse().map(d=>{const de=bd[d];const dh=de.reduce((s,e)=>s+e.total,0);return`<tr><td class="tm">${fd(d)}</td><td>${de.map(e=>{const p=gp(e.pid)||{nome:'—',colore:'gray'};return`<span class="pdot" style="margin-right:6px"><span class="dot" style="background:${gc(p.colore)}"></span>${p.nome}</span>`}).join('')}</td><td class="th">${hl(dh)}</td><td style="color:var(--text3);font-size:12px">${de.map(e=>e.note).filter(Boolean).join('; ')||'—'}</td></tr>`}).join('');
-  const sr=sorted.map(([pid,d])=>{const p=gp(pid)||{nome:'—',team:''};const pct=ot?((d.h/ot)*100).toFixed(1):0;return`<tr><td>${p.team||'—'}</td><td class="tpj">${p.nome}</td><td class="th">${d.h.toFixed(2).replace('.',',')}</td><td style="color:var(--text2);font-family:'DM Mono',monospace">${hl(d.h)}</td><td style="font-family:'DM Mono',monospace;color:var(--text2)">${ot.toFixed(2).replace('.',',')}</td><td style="font-family:'DM Mono',monospace;color:var(--amber);font-weight:500">${String(pct).replace('.',',')}%</td></tr>`}).join('');
-  document.getElementById('rb').innerHTML=`<div class="card" style="margin-bottom:14px"><div class="fb" style="margin-bottom:14px"><span style="font-size:15px;font-weight:600">${ml(cur)}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${hl(totH)} · ${days} gg · ${wdays} gg lavorativi · ${ot}h teoriche</span></div><div class="sbl">${cards}</div></div><div class="card" style="margin-bottom:14px"><div class="fb" style="margin-bottom:12px"><div class="sec" style="margin:0">Riepilogo per Excel</div><button class="btn bs bsm" onclick="cSum()"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/></svg>Copia negli appunti</button></div><div class="tw"><table id="st"><thead><tr><th>Team</th><th>Progetto</th><th>Ore decimali</th><th>Ore e minuti</th><th>Ore mensili (${wdays}gg x 8)</th><th>% sul mese</th></tr></thead><tbody>${sr}<tr style="border-top:1.5px solid var(--border2)"><td colspan="2" style="font-weight:600;color:var(--text)">Totale</td><td class="th" style="font-weight:600">${totH.toFixed(2).replace('.',',')}</td><td style="color:var(--green);font-family:'DM Mono',monospace;font-weight:600">${hl(totH)}</td><td style="font-family:'DM Mono',monospace;color:var(--text2)">${ot.toFixed(2).replace('.',',')}</td><td style="font-family:'DM Mono',monospace;color:var(--amber);font-weight:600">${ot?((totH/ot)*100).toFixed(1).replace('.',','):'0,0'}%</td></tr></tbody></table></div><p style="font-size:11px;color:var(--text3);margin-top:8px">Ore mensili = giorni lun-ven x 8. Virgola decimale formato Excel italiano.</p></div><div class="card"><div class="sec">Dettaglio giornaliero</div><div class="tw"><table><thead><tr><th>Data</th><th>Progetti</th><th>Ore</th><th>Note</th></tr></thead><tbody>${dr}</tbody></table></div></div>`;
+  const dr=Object.keys(bd).sort().reverse().map(d=>{const de=bd[d];const dh=de.reduce((s,e)=>s+e.total,0);return`<tr><td class="tm">${fd(d)}</td><td>${de.map(e=>{const p=gp(e.pid)||{nome:'—',colore:'gray'};return`<span class="pdot" style="margin-right:6px"><span class="dot" style="background:${gc(p.colore)}"></span>${esc(p.nome)}</span>`}).join('')}</td><td class="th">${hl(dh)}</td><td style="color:var(--text3);font-size:12px">${esc(de.map(e=>e.note).filter(Boolean).join('; '))||'—'}</td></tr>`}).join('');
+  const sr=sorted.map(([pid,d])=>{const p=gp(pid)||{nome:'—',team:''};const pct=ot?((d.h/ot)*100).toFixed(1):0;return`<tr><td>${esc(p.team||'—')}</td><td class="tpj">${esc(p.nome)}</td><td class="th">${d.h.toFixed(2).replace('.',',')}</td><td style="color:var(--text2);font-family:'DM Mono',monospace">${hl(d.h)}</td><td style="font-family:'DM Mono',monospace;color:var(--text2)">${ot.toFixed(2).replace('.',',')}</td><td style="font-family:'DM Mono',monospace;color:var(--amber);font-weight:500">${String(pct).replace('.',',')}%</td></tr>`}).join('');
+  document.getElementById('rb').innerHTML=`<div class="card" style="margin-bottom:14px"><div class="fb" style="margin-bottom:14px"><span style="font-size:15px;font-weight:600">${ml(cur)}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${hl(totH)} · ${days} gg · ${wdays} gg lavorativi · ${ot}h teoriche</span></div><div class="sbl">${cards}</div></div><div class="card" style="margin-bottom:14px"><div class="fb" style="margin-bottom:12px"><div class="sec" style="margin:0">Riepilogo per Excel</div><button class="btn bs bsm" onclick="cSum()"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/></svg>Copia negli appunti</button></div><div class="tw"><table id="st"><thead><tr><th>Team</th><th>Progetto</th><th>Ore decimali</th><th>Ore e minuti</th><th>Ore mensili (${wdays}gg x 8)</th><th>% sul mese</th></tr></thead><tbody>${sr}<tr style="border-top:1.5px solid var(--border2)"><td colspan="2" style="font-weight:600;color:var(--text)">Totale</td><td class="th" style="font-weight:600">${totH.toFixed(2).replace('.',',')}</td><td style="color:var(--green);font-family:'DM Mono',monospace;font-weight:600">${hl(totH)}</td><td style="font-family:'DM Mono',monospace;color:var(--text2)">${ot.toFixed(2).replace('.',',')}</td><td style="font-family:'DM Mono',monospace;color:var(--amber);font-weight:600">${ot?((totH/ot)*100).toFixed(1).replace('.',','):'0,0'}%</td></tr></tbody></table></div><p style="font-size:11px;color:var(--text3);margin-top:8px">Ore mensili = giorni lun-ven x 8. Virgola decimale formato Excel italiano.</p></div><div class="card"><div class="sec">Dettaglio giornaliero</div><div class="tw"><table><thead><tr><th>Data</th><th>Progetti</th><th>Ore</th><th>Note</th></tr></thead><tbody>${dr}</tbody></table></div></div>`
 }
 function cSum(){const rows=document.querySelectorAll('#st tbody tr');const L=['Team\tProgetto\tOre decimali\tOre e minuti\tOre mensili\t% sul mese'];rows.forEach(r=>{const c=[...r.querySelectorAll('td')].map(td=>td.textContent.trim());if(c.length===6)L.push(c.join('\t'))});navigator.clipboard.writeText(L.join('\n')).then(()=>toast('Copiato! Incolla in Excel con Ctrl+V')).catch(()=>toast('Errore — seleziona la tabella manualmente',true))}
+
+// ── pagina annuale ─────────────────────────────────────────────────────────────
+function rAnnoInit(){
+  const ay=document.getElementById('ay');
+  if(!ay.children.length){
+    const years=new Set(E.map(e=>e.date.slice(0,4)));
+    years.add(String(new Date().getFullYear()));
+    ay.innerHTML=[...years].sort().reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
+  }
+  rAnno()
+}
+function goStor(date){
+  const m=date.slice(0,7);
+  document.getElementById('stm').value=m;
+  onStmChange();
+  document.getElementById('std').value=date;
+  goPage('stor');rStor()
+}
+function hCol(h){
+  if(!h)return'var(--bg4)';
+  if(h<2)return'rgba(74,222,128,.18)';
+  if(h<4)return'rgba(74,222,128,.42)';
+  if(h<6)return'rgba(74,222,128,.7)';
+  return'rgba(74,222,128,.95)'
+}
+function rAnno(){
+  const year=parseInt(document.getElementById('ay').value)||new Date().getFullYear();
+  // mappa ore per giorno
+  const hmap={};
+  E.forEach(e=>{if(e.date.slice(0,4)===String(year))hmap[e.date]=(hmap[e.date]||0)+e.total});
+  // lunedì <= 1 gen
+  const jan1=new Date(year,0,1);
+  const back=jan1.getDay()===0?6:jan1.getDay()-1;
+  const startD=new Date(jan1);startD.setDate(jan1.getDate()-back);
+  // domenica >= 31 dic
+  const dec31=new Date(year,11,31);
+  const fwd=dec31.getDay()===0?0:7-dec31.getDay();
+  const endD=new Date(dec31);endD.setDate(dec31.getDate()+fwd);
+  // settimane
+  const weeks=[];const cur=new Date(startD);
+  while(cur<=endD){
+    const week=[];
+    for(let i=0;i<7;i++){
+      const ds=cur.getFullYear()+'-'+(cur.getMonth()+1).toString().padStart(2,'0')+'-'+cur.getDate().toString().padStart(2,'0');
+      week.push({date:ds,inYear:cur.getFullYear()===year,month:cur.getMonth(),day:cur.getDate(),h:hmap[ds]||0});
+      cur.setDate(cur.getDate()+1);
+    }
+    weeks.push(week);
+  }
+  // etichette mese (prima settimana che contiene il giorno 1 di ogni mese)
+  const weekLabels={};
+  weeks.forEach((w,wi)=>{w.forEach(d=>{if(d.inYear&&d.day===1&&weekLabels[d.month]===undefined)weekLabels[d.month]=wi})});
+  const invLabels={};Object.entries(weekLabels).forEach(([m,wi])=>{invLabels[wi]=MN[parseInt(m)].slice(0,3)});
+  const DL=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  // heatmap
+  let h='<div class="card" style="margin-bottom:14px">';
+  h+='<div class="fb" style="margin-bottom:12px"><div class="sec" style="margin:0">Heatmap '+year+'</div></div>';
+  h+='<div class="hmap-wrap"><div class="hmap-labels">'+DL.map(l=>`<div class="hmap-dl">${l}</div>`).join('')+'</div>';
+  h+='<div style="overflow-x:auto;flex:1"><div class="hmap">';
+  weeks.forEach((w,wi)=>{
+    h+=`<div class="hmap-col"><div class="hmap-ml">${invLabels[wi]||''}</div>`;
+    w.forEach(d=>{
+      if(!d.inYear){h+='<div class="hmap-day" style="background:transparent"></div>';return}
+      const title=`${fd(d.date)}: ${d.h?hl(d.h):'nessuna ora'}`;
+      const click=d.h?`onclick="goStor('${d.date}')"`:'' ;
+      const cls=d.h?'hmap-day clickable':'hmap-day';
+      h+=`<div class="${cls}" style="background:${hCol(d.h)}" title="${title}" ${click}></div>`;
+    });
+    h+='</div>';
+  });
+  h+='</div></div></div>';
+  h+='<div class="hmap-legend">Intensità:';
+  [[0,'nessuna'],[1,'&lt;2h'],[3,'2–4h'],[5,'4–6h'],[7,'6+h']].forEach(([v,lbl])=>{
+    h+=`<div class="hmap-day" style="background:${hCol(v)}"></div><span>${lbl}</span>`;
+  });
+  h+='</div></div>';
+  // tabella mensile
+  h+='<div class="card"><div class="sec">Riepilogo mensile '+year+'</div><div class="tw"><table>';
+  h+='<thead><tr><th>Mese</th><th>Ore totali</th><th>Giorni lavorati</th><th>Media/giorno</th><th>Gg lavorativi</th><th>% su 8h/gg</th></tr></thead><tbody>';
+  let yTot=0,yDays=0,yWD=0;
+  for(let mi=0;mi<12;mi++){
+    const yms2=year+'-'+(mi+1).toString().padStart(2,'0');
+    const ent=E.filter(e=>e.date.startsWith(yms2));
+    const mh=ent.reduce((s,e)=>s+e.total,0);
+    const mdays=new Set(ent.map(e=>e.date)).size;
+    const wdCnt=wd(yms2),target=wdCnt*8;
+    const avg=mdays?mh/mdays:0;
+    const pct=target?((mh/target)*100).toFixed(0):0;
+    const pctColor=mh>0?(pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--coral)'):'var(--text3)';
+    yTot+=mh;yDays+=mdays;yWD+=wdCnt;
+    h+=`<tr style="opacity:${mh>0?1:.35}"><td style="color:var(--text);font-weight:500">${MN[mi]}</td><td class="th">${hl(mh)}</td><td style="font-family:'DM Mono',monospace;color:var(--text2)">${mdays||'—'}</td><td style="font-family:'DM Mono',monospace;color:var(--text2)">${avg?avg.toFixed(1):'—'}</td><td style="font-family:'DM Mono',monospace;color:var(--text3)">${wdCnt}</td><td style="font-family:'DM Mono',monospace;font-weight:500;color:${pctColor}">${mh>0?pct+'%':'—'}</td></tr>`;
+  }
+  const yTarget=yWD*8;
+  const yPct=yTarget?((yTot/yTarget)*100).toFixed(1):'0';
+  const yAvg=yDays?yTot/yDays:0;
+  h+=`<tr style="border-top:1.5px solid var(--border2)"><td style="color:var(--text);font-weight:600">Totale ${year}</td><td class="th" style="font-weight:600">${hl(yTot)}</td><td style="font-family:'DM Mono',monospace;color:var(--text2);font-weight:600">${yDays||'—'}</td><td style="font-family:'DM Mono',monospace;color:var(--text2);font-weight:600">${yAvg?yAvg.toFixed(1):'—'}</td><td style="font-family:'DM Mono',monospace;color:var(--text3)">${yWD}</td><td style="font-family:'DM Mono',monospace;color:var(--amber);font-weight:600">${yPct}%</td></tr>`;
+  h+='</tbody></table></div></div>';
+  document.getElementById('anno-content').innerHTML=h;
+}
+
+// ── progetti ──────────────────────────────────────────────────────────────────
 function rProj(){
   const c=document.getElementById('pl');
   if(!P.length){c.innerHTML='<div class="empty">Nessun progetto. Creane uno!</div>';return}
-  c.innerHTML=P.map(p=>{const cnt=E.filter(e=>e.pid===p.id).length;const h=E.filter(e=>e.pid===p.id).reduce((s,e)=>s+e.total,0);return`<div class="pitem"><div class="pitem-c" style="background:${gc(p.colore)}"></div><div class="pitem-n">${p.nome}</div>${tb(p.team)}<div class="pitem-i">${cnt} inserimenti · ${hl(h)}</div><button class="btn bg bic bsm" onclick="openPM('${p.id}')" title="Modifica"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg></button><button class="btn bd bic bsm" onclick="delP('${p.id}')"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button></div>`}).join('');
+  c.innerHTML=P.map(p=>{
+    const {cnt,h}=E.reduce((a,e)=>e.pid===p.id?{cnt:a.cnt+1,h:a.h+e.total}:a,{cnt:0,h:0});
+    return`<div class="pitem"><div class="pitem-c" style="background:${gc(p.colore)}"></div><div class="pitem-n">${esc(p.nome)}</div>${tb(p.team)}<div class="pitem-i">${cnt} inserimenti · ${hl(h)}</div><button class="btn bg bic bsm" onclick="openPM('${p.id}')" title="Modifica"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg></button><button class="btn bd bic bsm" onclick="delP('${p.id}')"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button></div>`
+  }).join('')
 }
-function uSB(){const n=new Date();document.getElementById('sbm').textContent=MN[n.getMonth()];const h=E.filter(e=>ym(e.date)===cym()).reduce((s,e)=>s+e.total,0);document.getElementById('sbh').textContent=hl(h);document.getElementById('tlbl').textContent='Oggi, '+n.getDate()+' '+MN[n.getMonth()]+' '+n.getFullYear()}
-function rAll(){uSB();uPS();const yms=ayms();['stm','rm'].forEach(id=>{document.getElementById(id).innerHTML=yms.map(m=>`<option value="${m}">${ml(m)}</option>`).join('')});document.getElementById('dm').innerHTML=yms.map(m=>`<option value="${m}">${ml(m)}</option>`).join('');rDash()}
-async function mount(){document.getElementById('fn').textContent=DIR.name;await load();document.getElementById('setup').style.display='none';document.getElementById('app').classList.add('ready');rCP();rAll();initF()}
-async function changeFolder(){if(!confirm('Cambiare cartella?'))return;try{DIR=await window.showDirectoryPicker({mode:'readwrite'});await iset(DIR);await mount();toast('Cartella: '+DIR.name)}catch(e){if(e.name!=='AbortError')toast('Errore',true)}}
+
+// ── sidebar e inizializzazione ────────────────────────────────────────────────
+function uSB(){
+  const n=new Date();
+  document.getElementById('sbm').textContent=MN[n.getMonth()];
+  const h=E.filter(e=>ym(e.date)===cym()).reduce((s,e)=>s+e.total,0);
+  document.getElementById('sbh').textContent=hl(h);
+  document.getElementById('tlbl').textContent='Oggi, '+n.getDate()+' '+MN[n.getMonth()]+' '+n.getFullYear()
+}
+function rAll(){
+  uSB();uPS();
+  const yms=ayms();
+  ['stm','rm'].forEach(id=>{document.getElementById(id).innerHTML=yms.map(m=>`<option value="${m}">${ml(m)}</option>`).join('')});
+  const dmSel=document.getElementById('dm');
+  dmSel.innerHTML=yms.map(m=>`<option value="${m}">${ml(m)}</option>`).join('');
+  dmSel.onchange=rDash;
+  rDash()
+}
+async function mount(){
+  document.getElementById('fn').textContent=DIR.name;
+  await load();
+  _goal=await loadGoal();
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').classList.add('ready');
+  rCP();rAll();initF();
+  checkOB();
+}
+async function changeFolder(){
+  if(!confirm('Cambiare cartella?'))return;
+  try{DIR=await window.showDirectoryPicker({mode:'readwrite'});await iset(DIR);await mount();toast('Cartella: '+DIR.name)}
+  catch(e){if(e.name!=='AbortError')toast('Errore',true)}
+}
 document.getElementById('btn-setup').addEventListener('click',async()=>{
   try{DIR=await window.showDirectoryPicker({mode:'readwrite'});await iset(DIR);await mount()}
   catch(e){if(e.name==='AbortError')return;const el=document.getElementById('err');el.style.display='block';el.textContent='Errore: '+e.message}
@@ -413,7 +808,7 @@ document.getElementById('btn-setup').addEventListener('click',async()=>{
       document.getElementById('btn-setup').onclick=async()=>{
         try{const p2=await h.requestPermission({mode:'readwrite'});if(p2==='granted'){DIR=h;await mount()}else{DIR=await window.showDirectoryPicker({mode:'readwrite'});await iset(DIR);await mount()}}
         catch(e){if(e.name!=='AbortError')toast('Errore apertura cartella',true)}
-      };
+      }
     }
   }catch(e){}
 })();
